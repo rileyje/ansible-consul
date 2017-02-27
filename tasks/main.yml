@@ -4,12 +4,12 @@
 - name: Check distribution compatibility
   fail:
     msg: "{{ ansible_distribution }} is not currently supported by this role."
-  when: ansible_distribution not in ['RedHat', 'CentOS', 'Debian', 'Ubuntu']
+  when: ansible_distribution not in ['Scientific', 'RedHat', 'CentOS', 'Debian', 'Ubuntu']
 
 - name: Fail if not a new release of CentOS or Red Hat
   fail:
     msg: "{{ ansible_distribution_version }} isn't a supported version."
-  when: ansible_distribution in ['RedHat', 'CentOS'] and ansible_distribution_version|version_compare(6, '<')
+  when: ansible_distribution in ['Scientific', 'RedHat', 'CentOS'] and ansible_distribution_version|version_compare(6, '<')
 
 - name: Fail if not a new release of Debian
   fail:
@@ -30,7 +30,7 @@
   fail:
     msg: "Use DNSmasq instead of iptables on {{ ansible_distribution }}."
   when: consul_iptables_enable and
-        (ansible_distribution in ['RedHat', 'CentOS'] and ansible_distribution_version|version_compare(6, '>='))
+        (ansible_distribution in ['Scientific', 'RedHat', 'CentOS'] and ansible_distribution_version|version_compare(6, '>='))
 
 - name: Fail if both Dnsmasq and iptables are enabled
   fail:
@@ -107,6 +107,9 @@
   local_action: file path=/tmp/consul_raw.key state=absent
   become: no
   when: consul_raw_key is defined and bootstrap_marker.stat.exists
+
+- include: ../tasks/dnsmasq.yml
+  when: consul_dnsmasq_enable
 
 - block:
     - name: Generate gossip encryption key
@@ -190,9 +193,6 @@
     file:
       dest: /etc/consul/.consul_bootstrapped
       state: touch
-
-  - include: ../tasks/dnsmasq.yml
-    when: consul_dnsmasq_enable
 
   - include: ../tasks/iptables.yml
     when: consul_iptables_enable
